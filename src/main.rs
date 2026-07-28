@@ -1,31 +1,32 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use std::net::Ipv4Addr;
-
+use std::ops::Index;
 use eframe::egui;
+use crate::calc::{Network, NetworkInfo};
 
-// mod old_calc;
 mod calc;
 
 fn main() -> eframe::Result {
 
 	let options = eframe::NativeOptions {
-		viewport: egui::ViewportBuilder::default().with_inner_size([640.0, 240.0]),
+		viewport: egui::ViewportBuilder::default().with_inner_size([960.0, 480.0]),
 		..Default::default()
 	};
 
-	let mut ip_box = "address".to_owned();
-	let mut subnet_length_box = "mask or length".to_owned();
+	let mut ip_box = "network address".to_owned();
+	let mut subnet_length_box = "mask length".to_owned();
 
 	let mut network: Ipv4Addr = Ipv4Addr::new(0,0,0,0);
 	let mut class: String = String::new();
 	
 	let mut subnet: Ipv4Addr = Ipv4Addr::new(0,0,0,0);
-	let mut wildcard_bits: Ipv4Addr = Ipv4Addr::new(0,0,0,0);
+	let mut wildcard_mask: Ipv4Addr = Ipv4Addr::new(0, 0, 0, 0);
 	let mut first_host: Ipv4Addr = Ipv4Addr::new(0,0,0,0);
 	let mut last_host: Ipv4Addr = Ipv4Addr::new(0,0,0,0);
 	let mut broadcast_address: Ipv4Addr = Ipv4Addr::new(0,0,0,0);
 	let mut hosts: u32 = 0;
 
+	let mut network_list: Vec<calc::Network> = Vec::new();
 
 
 	eframe::run_ui_native("IP Calc", options, move |ui, _frame| {
@@ -39,11 +40,11 @@ fn main() -> eframe::Result {
 				ui.text_edit_singleline(&mut subnet_length_box).labelled_by(subnet.id);
 			});
 
-			
-			if ui.button("Calc").clicked() {
-				
-				// let network_info = calc::get_network(&ip_box, &subnet_length_box);
 
+			if ui.button("Calc").clicked() {
+
+				network_list = Vec::new();
+				
 				let ip_b_ip: Ipv4Addr = ip_box.parse().unwrap();
 				let sn_l_b_l: u8 = subnet_length_box.parse().unwrap();
 
@@ -54,36 +55,86 @@ fn main() -> eframe::Result {
 				};
 
 				let network_info = network_obj.info();
-				network = network_info.0;
-				subnet = network_info.1;
-				wildcard_bits = network_info.2;
-				first_host = network_info.3;
-				last_host = network_info.4;
-				broadcast_address = network_info.5;
-				hosts = network_info.6;
-				class = network_info.7;
+				network = network_info.network_address;
+				subnet = network_info.subnet_mask;
+				wildcard_mask = network_info.wildcard_mask;
+				first_host = network_info.first_host;
+				last_host = network_info.last_host;
+				broadcast_address = network_info.broadcast;
+				hosts = network_info.hosts;
+				class = network_info.class;
 
-				
+				network_list.push(network_obj);
+
+				// These are tests to see if the grid worked as I expected
+				/*let class_a_local_space = Network {
+					network_address: Ipv4Addr::from_octets([10,0,0,0]),
+					mask_length: 8,
+				};
+				network_list.push(class_a_local_space);
+
+				let class_b_local_space = Network {
+					network_address: Ipv4Addr::from_octets([172,16,0,0]),
+					mask_length: 12,
+				};
+				network_list.push(class_b_local_space);
+
+				let class_c_local_space = Network {
+					network_address: Ipv4Addr::from_octets([192,168,0,0]),
+					mask_length: 16,
+				};
+				network_list.push(class_c_local_space);*/
+
 			}
-			
+
 			ui.label(format!("Network: {network} ({class})"));
 			ui.label(format!("Subnet: {subnet}"));
-			ui.label(format!("Wildcard: {wildcard_bits}"));
+			ui.label(format!("Wildcard: {wildcard_mask}"));
 			ui.label(format!("First host: {first_host}"));
 			ui.label(format!("Last host: {last_host}"));
 			ui.label(format!("Broadcast: {broadcast_address}"));
 			ui.label(format!("Hosts: {hosts}"));
-			
-			// ui.horizontal(|ui| {
-			//     let name_label = ui.label("Your name: ");
-			//     ui.text_edit_singleline(&mut name)
-			//         .labelled_by(name_label.id);
-			// });
-			// ui.add(egui::Slider::new(&mut age, 0..=120).text("age"));
-			// if ui.button("Increment").clicked() {
-			//     age += 1;
-			// }
-			// ui.label(format!("Hello '{name}', age {age}"));
+
+			ui.separator();
+
+			egui::Grid::new("network_tables").striped(true).show(ui, |ui| {
+
+					ui.label("Network");
+					ui.label("Subnet mask");
+					ui.label("Wildcard");
+					ui.label("Host range");
+					ui.label("Broadcast address");
+					ui.label("Hosts");
+					ui.label("Split");
+					// ui.label("Merge");
+					ui.end_row();
+
+					for network in network_list.clone() {
+						let info = network.info();
+
+						ui.label(info.network_address.to_string());
+						ui.label(info.subnet_mask.to_string());
+						ui.label(info.wildcard_mask.to_string());
+						ui.label(format!("{0} - {1}", info.first_host, info.last_host));
+						ui.label(info.broadcast.to_string());
+						ui.label(info.hosts.to_string());
+						if ui.button("Split").clicked() {
+							let split_network_index = network_list.iter()
+								.position(|x| x.network_address == network.network_address)
+								.unwrap();
+							let split_network = network_list[split_network_index].clone().split();
+							network_list.remove(split_network_index);
+							network_list.push(split_network.0);
+							network_list.push(split_network.1);
+						}
+						// ui.label("Merge");
+						ui.end_row();
+					}
+
+				// ui.horizontal(|ui| { ui.label("Same"); ui.label("cell"); });
+				// ui.label("Third row, second column");
+				// ui.end_row();
+			});
 		});
 	})
 }

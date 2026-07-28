@@ -1,7 +1,20 @@
 use std::net::{Ipv4Addr};
+#[derive(Copy, Clone)]
 pub(crate) struct Network {
     pub(crate) network_address: Ipv4Addr,
     pub(crate) mask_length: u8,
+}
+
+pub(crate) struct NetworkInfo {
+    pub(crate) network_address: Ipv4Addr,
+    pub(crate) mask_length: u8,
+    pub(crate) subnet_mask: Ipv4Addr,
+    pub(crate) wildcard_mask: Ipv4Addr,
+    pub(crate) first_host: Ipv4Addr,
+    pub(crate) last_host: Ipv4Addr,
+    pub(crate) broadcast: Ipv4Addr,
+    pub(crate) hosts: u32,
+    pub(crate) class: String,
 }
 
 impl Network {
@@ -29,9 +42,18 @@ impl Network {
     /// ```
     
 
-    pub(crate) fn info(&self) -> (Ipv4Addr, Ipv4Addr, Ipv4Addr, Ipv4Addr, Ipv4Addr, Ipv4Addr, u32, String) {
-        (self.network_address, self.subnet(), self.wildcard(), self.first_host(),
-         self.last_host(), self.broadcast(), self.available_hosts(), self.class())
+    pub(crate) fn info(&self) -> NetworkInfo {
+        NetworkInfo {
+            network_address: self.network_address,
+            mask_length: self.mask_length,
+            subnet_mask: self.subnet(),
+            wildcard_mask: self.wildcard(),
+            first_host: self.first_host(),
+            last_host: self.last_host(),
+            broadcast: self.broadcast(),
+            hosts: self.available_hosts(),
+            class: self.class(),
+        }
     }
 
     /// Calculates the subnet address of the [Network]
