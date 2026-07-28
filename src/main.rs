@@ -136,6 +136,8 @@ fn main() -> eframe::Result {
 							network_list.remove(split_network_index);
 							network_list.push(split_network.0);
 							network_list.push(split_network.1);
+							
+							network_list.sort_by(|a,b| a.network_address.cmp(&b.network_address));
 						}
 						// ui.label("Merge");
 						ui.end_row();
