@@ -822,13 +822,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "egt"
-version = "0.1.0"
-dependencies = [
- "eframe",
-]
-
-[[package]]
 name = "egui"
 version = "0.34.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1532,6 +1525,13 @@ dependencies = [
  "hashbrown 0.17.1",
  "serde",
  "serde_core",
+]
+
+[[package]]
+name = "ip-calc"
+version = "0.0.3"
+dependencies = [
+ "eframe",
 ]
 
 [[package]]

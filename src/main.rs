@@ -40,53 +40,63 @@ fn main() -> eframe::Result {
 				ui.text_edit_singleline(&mut subnet_length_box).labelled_by(subnet.id);
 			});
 
-
-			if ui.button("Calc").clicked() {
-
-				network_list = Vec::new();
+			ui.horizontal(|ui| {
 				
-				let ip_b_ip: Ipv4Addr = ip_box.parse().unwrap();
-				let sn_l_b_l: u8 = subnet_length_box.parse().unwrap();
-
-
-				let network_obj = calc::Network {
-					network_address: ip_b_ip,
-					mask_length: sn_l_b_l,
-				};
-
-				let network_info = network_obj.info();
-				network = network_info.network_address;
-				subnet = network_info.subnet_mask;
-				wildcard_mask = network_info.wildcard_mask;
-				first_host = network_info.first_host;
-				last_host = network_info.last_host;
-				broadcast_address = network_info.broadcast;
-				hosts = network_info.hosts;
-				class = network_info.class;
-
-				network_list.push(network_obj);
-
-				// These are tests to see if the grid worked as I expected
-				/*let class_a_local_space = Network {
-					network_address: Ipv4Addr::from_octets([10,0,0,0]),
-					mask_length: 8,
-				};
-				network_list.push(class_a_local_space);
-
-				let class_b_local_space = Network {
-					network_address: Ipv4Addr::from_octets([172,16,0,0]),
-					mask_length: 12,
-				};
-				network_list.push(class_b_local_space);
-
-				let class_c_local_space = Network {
-					network_address: Ipv4Addr::from_octets([192,168,0,0]),
-					mask_length: 16,
-				};
-				network_list.push(class_c_local_space);*/
-
-			}
-
+				if ui.button("Calc").clicked() {
+	
+					network_list = Vec::new();
+					
+					let ip_b_ip: Ipv4Addr = ip_box.parse().unwrap();
+					let sn_l_b_l: u8 = subnet_length_box.parse().unwrap();
+	
+	
+					let network_obj = calc::Network {
+						network_address: ip_b_ip,
+						mask_length: sn_l_b_l,
+					};
+	
+					let network_info = network_obj.info();
+					network = network_info.network_address;
+					subnet = network_info.subnet_mask;
+					wildcard_mask = network_info.wildcard_mask;
+					first_host = network_info.first_host;
+					last_host = network_info.last_host;
+					broadcast_address = network_info.broadcast;
+					hosts = network_info.hosts;
+					class = network_info.class;
+	
+					network_list.push(network_obj);
+	
+					// These are tests to see if the grid worked as I expected
+					/*let class_a_local_space = Network {
+						network_address: Ipv4Addr::from_octets([10,0,0,0]),
+						mask_length: 8,
+					};
+					network_list.push(class_a_local_space);
+	
+					let class_b_local_space = Network {
+						network_address: Ipv4Addr::from_octets([172,16,0,0]),
+						mask_length: 12,
+					};
+					network_list.push(class_b_local_space);
+	
+					let class_c_local_space = Network {
+						network_address: Ipv4Addr::from_octets([192,168,0,0]),
+						mask_length: 16,
+					};
+					network_list.push(class_c_local_space);*/
+	
+				}
+			
+				if ui.button("Find network").clicked() {
+					let ip_query: Ipv4Addr = ip_box.parse().unwrap();
+					let subnet_query: u8 = subnet_length_box.parse().unwrap();
+					
+					let network_ip = calc::find_network(ip_query, subnet_query);
+					ip_box = network_ip.to_string();
+				}
+			});
+			
 			ui.label(format!("Network: {network} ({class})"));
 			ui.label(format!("Subnet: {subnet}"));
 			ui.label(format!("Wildcard: {wildcard_mask}"));

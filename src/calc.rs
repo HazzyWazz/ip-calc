@@ -32,13 +32,13 @@ impl Network {
     /// }
     ///
     /// let network_info = main_network.info()
-    /// println!("Network: {} ({})", network_info.0, network_info.7);
-    /// println!("Subnet: {}", network_info.1);
-    /// println!("Wildcard: {}", network_info.2);
-    /// println!("First host:first_host}", network_info.3);
-    /// println!("Last host:last_host}", network_info.4);
-    /// println!("Broadcast: {}" network_info.5);
-    /// println!("Hosts: {}", network_info.6);
+    /// println!("Network: {} ({})", network_info.network_address, network_info.class);
+    /// println!("Subnet: {}", network_info.subnet_mask);
+    /// println!("Wildcard: {}", network_info.wildcard_mask);
+    /// println!("First host:first_host}", network_info.first_host);
+    /// println!("Last host:last_host}", network_info.last_host);
+    /// println!("Broadcast: {}" network_info.broadcast);
+    /// println!("Hosts: {}", network_info.hosts);
     /// ```
     
 
@@ -114,7 +114,7 @@ impl Network {
 /// Determines the class of the provided IPv4 address.
 /// See classful networking for more information.
 fn range_check(ip: Ipv4Addr) -> i8 {
-    let c = -1_i8;
+    let class = -1_i8;
     let ipn = u32::from(ip);
 
     // Loopback
@@ -123,30 +123,55 @@ fn range_check(ip: Ipv4Addr) -> i8 {
     // Broadcast
     if ip.is_broadcast() {return 127 };
 
+    // Class A private
+    let class_a_private_start = u32::from(Ipv4Addr::new(10, 0, 0, 0));
+    let class_a_private_end = u32::from(Ipv4Addr::new(10, 255, 255, 255));
+    if class_a_private_start <= ipn && ipn <= class_a_private_end { return 10 };
+
+    // Class A shared address space
+    let class_a_shared_start = u32::from(Ipv4Addr::new(100, 64, 0, 0));
+    let class_a_shared_end = u32::from(Ipv4Addr::new(100, 127, 255, 255));
+    if class_a_shared_start <= ipn && ipn <= class_a_shared_end { return 11 };
+
     // Class A
-    let a_s = u32::from(Ipv4Addr::new(1,0,0,0));
-    let a_e = u32::from(Ipv4Addr::new(126,255,255,255));
-    if a_s <= ipn && ipn <= a_e { return 1 };
+    let class_a_start = u32::from(Ipv4Addr::new(0, 0, 0, 0));
+    let class_a_end = u32::from(Ipv4Addr::new(127, 255, 255, 255));
+    if class_a_start <= ipn && ipn <= class_a_end { return 1 };
+
+    // Class B Private
+    let class_b_private_start = u32::from(Ipv4Addr::new(172, 16, 0, 0));
+    let class_b_private_end = u32::from(Ipv4Addr::new(172, 31, 255, 255));
+    if class_b_private_start <= ipn && ipn <= class_b_private_end { return 20 };
 
     // Class B
-    let b_s = u32::from(Ipv4Addr::new(128,0,0,0));
-    let b_e = u32::from(Ipv4Addr::new(191,255,255,255));
-    if b_s <= ipn && ipn <= b_e { return 2 };
+    let class_b_start = u32::from(Ipv4Addr::new(128, 0, 0, 0));
+    let class_b_end = u32::from(Ipv4Addr::new(191, 255, 255, 255));
+    if class_b_start <= ipn && ipn <= class_b_end { return 2 };
+
+    // Class C Private
+    let class_c_private_start = u32::from(Ipv4Addr::new(192, 168, 0, 0));
+    let class_c_private_end = u32::from(Ipv4Addr::new(192, 168, 255, 255));
+    if class_c_private_start <= ipn && ipn <= class_c_private_end { return 30 };
+
+    // Class C Link-local
+    let class_c_link_local_start = u32::from(Ipv4Addr::new(169, 254, 0, 0));
+    let class_c_link_local_end = u32::from(Ipv4Addr::new(169, 254, 255, 255));
+    if class_c_link_local_start <= ipn && ipn <= class_c_link_local_end { return 31 };
 
     // Class C
-    let c_s = u32::from(Ipv4Addr::new(192,0,0,0));
-    let c_e = u32::from(Ipv4Addr::new(223,255,255,255));
-    if c_s <= ipn && ipn <= c_e { return 3 };
+    let class_c_start = u32::from(Ipv4Addr::new(192, 0, 0, 0));
+    let class_c_end = u32::from(Ipv4Addr::new(223, 255, 255, 255));
+    if class_c_start <= ipn && ipn <= class_c_end { return 3 };
 
     // Class D (multicast)
     if ip.is_multicast() { return 4 };
 
     // Class E
-    let e_s = u32::from(Ipv4Addr::new(240,0,0,0));
-    let e_e = u32::from(Ipv4Addr::new(255,255,255,254));
-    if e_s <= ipn && ipn <= e_e { return 5 };
+    let class_e_start = u32::from(Ipv4Addr::new(240, 0, 0, 0));
+    let class_e_end = u32::from(Ipv4Addr::new(255, 255, 255, 254));
+    if class_e_start <= ipn && ipn <= class_e_end { return 5 };
 
-    c
+    class
 }
 
 /// Determines the class of the given IPv4 address using range_check()
@@ -154,10 +179,15 @@ fn get_class(ip: Ipv4Addr) -> String {
     let mut class = "";
 
     match range_check(ip) {
-        0 => { class = "Loopback addresses" },
+        0 => { class = "Class A | Loopback addresses" },
         1 => { class = "Class A" },
+        10 => { class = "Class A | Private addresses" },
+        11 => { class = "Class A | Shared addresses" },
         2 => { class = "Class B" },
+        20 => { class = "Class B | Private addresses" },
         3 => { class = "Class C" },
+        30 => { class = "Class C | Private addresses" },
+        31 => { class = "Class C | Link-local addresses" },
         4 => { class = "Class D | Multicast addresses" },
         5 => { class = "Class E | Reserved addresses" },
         127 => { class = "Broadcast Address" },
@@ -165,5 +195,11 @@ fn get_class(ip: Ipv4Addr) -> String {
     }
 
     String::from(class)
+}
+
+pub(crate) fn find_network(ip: Ipv4Addr, subnet: u8) -> Ipv4Addr {
+    let subnet_mask = Ipv4Addr::from(u32::MAX << (32 - subnet));
+    let network_address = ip & subnet_mask;
+    network_address
 }
 
