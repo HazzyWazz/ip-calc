@@ -1,8 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use std::net::Ipv4Addr;
-use std::ops::Index;
 use eframe::egui;
-use crate::calc::{Network, NetworkInfo};
 
 mod calc;
 
@@ -25,6 +23,7 @@ fn main() -> eframe::Result {
 	let mut last_host: Ipv4Addr = Ipv4Addr::new(0,0,0,0);
 	let mut broadcast_address: Ipv4Addr = Ipv4Addr::new(0,0,0,0);
 	let mut hosts: u32 = 0;
+	let mut length: u8 = 0;
 
 	let mut network_list: Vec<calc::Network> = Vec::new();
 
@@ -57,6 +56,7 @@ fn main() -> eframe::Result {
 	
 					let network_info = network_obj.info();
 					network = network_info.network_address;
+					length = network_info.mask_length;
 					subnet = network_info.subnet_mask;
 					wildcard_mask = network_info.wildcard_mask;
 					first_host = network_info.first_host;
@@ -97,7 +97,7 @@ fn main() -> eframe::Result {
 				}
 			});
 			
-			ui.label(format!("Network: {network} ({class})"));
+			ui.label(format!("Network: {network}/{length} ({class})"));
 			ui.label(format!("Subnet: {subnet}"));
 			ui.label(format!("Wildcard: {wildcard_mask}"));
 			ui.label(format!("First host: {first_host}"));
@@ -122,22 +122,27 @@ fn main() -> eframe::Result {
 					for network in network_list.clone() {
 						let info = network.info();
 
-						ui.label(info.network_address.to_string());
+						ui.label(info.network_address.to_string() + "/" + info.mask_length.to_string().as_str());
 						ui.label(info.subnet_mask.to_string());
 						ui.label(info.wildcard_mask.to_string());
 						ui.label(format!("{0} - {1}", info.first_host, info.last_host));
 						ui.label(info.broadcast.to_string());
 						ui.label(info.hosts.to_string());
-						if ui.button("Split").clicked() {
-							let split_network_index = network_list.iter()
-								.position(|x| x.network_address == network.network_address)
-								.unwrap();
-							let split_network = network_list[split_network_index].clone().split();
-							network_list.remove(split_network_index);
-							network_list.push(split_network.0);
-							network_list.push(split_network.1);
-							
-							network_list.sort_by(|a,b| a.network_address.cmp(&b.network_address));
+						// This is a naive way to handle being able to subnet "unsubnettable" networks
+						// such as /30. /31 is a p2p link (two addresses, two hosts, no network) and
+						// /32 is basically a host specific address
+						if info.mask_length < 30 {
+							if ui.button("Split").clicked() {
+								let split_network_index = network_list.iter()
+									.position(|x| x.network_address == network.network_address)
+									.unwrap();
+								let split_network = network_list[split_network_index].clone().split();
+								network_list.remove(split_network_index);
+								network_list.push(split_network.0);
+								network_list.push(split_network.1);
+
+								network_list.sort_by(|a,b| a.network_address.cmp(&b.network_address));
+							}
 						}
 						// ui.label("Merge");
 						ui.end_row();

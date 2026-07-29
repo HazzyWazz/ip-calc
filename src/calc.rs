@@ -138,6 +138,11 @@ fn range_check(ip: Ipv4Addr) -> i8 {
     let class_a_end = u32::from(Ipv4Addr::new(127, 255, 255, 255));
     if class_a_start <= ipn && ipn <= class_a_end { return 1 };
 
+    // Class B Link-local
+    let class_b_link_local_start = u32::from(Ipv4Addr::new(169, 254, 0, 0));
+    let class_b_link_local_end = u32::from(Ipv4Addr::new(169, 254, 255, 255));
+    if class_b_link_local_start <= ipn && ipn <= class_b_link_local_end { return 21 };
+    
     // Class B Private
     let class_b_private_start = u32::from(Ipv4Addr::new(172, 16, 0, 0));
     let class_b_private_end = u32::from(Ipv4Addr::new(172, 31, 255, 255));
@@ -152,11 +157,7 @@ fn range_check(ip: Ipv4Addr) -> i8 {
     let class_c_private_start = u32::from(Ipv4Addr::new(192, 168, 0, 0));
     let class_c_private_end = u32::from(Ipv4Addr::new(192, 168, 255, 255));
     if class_c_private_start <= ipn && ipn <= class_c_private_end { return 30 };
-
-    // Class C Link-local
-    let class_c_link_local_start = u32::from(Ipv4Addr::new(169, 254, 0, 0));
-    let class_c_link_local_end = u32::from(Ipv4Addr::new(169, 254, 255, 255));
-    if class_c_link_local_start <= ipn && ipn <= class_c_link_local_end { return 31 };
+    
 
     // Class C
     let class_c_start = u32::from(Ipv4Addr::new(192, 0, 0, 0));
@@ -185,9 +186,9 @@ fn get_class(ip: Ipv4Addr) -> String {
         11 => { class = "Class A | Shared addresses" },
         2 => { class = "Class B" },
         20 => { class = "Class B | Private addresses" },
+        21 => { class = "Class B | Link-local addresses" },
         3 => { class = "Class C" },
         30 => { class = "Class C | Private addresses" },
-        31 => { class = "Class C | Link-local addresses" },
         4 => { class = "Class D | Multicast addresses" },
         5 => { class = "Class E | Reserved addresses" },
         127 => { class = "Broadcast Address" },
